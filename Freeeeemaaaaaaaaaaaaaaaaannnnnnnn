@@ -1,0 +1,84 @@
+local function WaitForChildInDescendants(parent, name, timeout)
+	while os.clock() - os.clock() < (timeout or 5) do
+		local found = parent:FindFirstChild(name, true)
+		if found then
+			return found
+		end
+		task.wait()
+	end
+	return nil
+end
+
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer  = game:GetService("Players").LocalPlayer
+local Character  = LocalPlayer.Character
+if not Character then
+	Character = LocalPlayer.CharacterAdded:Wait()
+end
+
+local DodgeCooldown  = WaitForChildInDescendants(Character, "DodgeCooldown", 5)
+local DodgeTime  = WaitForChildInDescendants(Character, "DodgeTime", 5)
+local DodgeFatigue   = WaitForChildInDescendants(Character, "DodgeFatigue", 5)
+local CanDodge       = WaitForChildInDescendants(Character, "CanDodge", 5)
+local isDodging         = false
+local isHolding         = false
+local Ragdolled         = WaitForChildInDescendants(Character, "Ragdolled")
+local IsDowned          = WaitForChildInDescendants(Character, "IsDowned")
+local IsFinishing       = WaitForChildInDescendants(Character, "IsFinishing", 5)
+
+local DodgeButton       = LocalPlayer.PlayerGui.MobileHandler.Dodge
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CooldownUI        = ReplicatedStorage.Remotes.CooldownUI
+local SetCooldown       = ReplicatedStorage.Remotes.SetCooldown
+local Humanoid          = Character:FindFirstChild("Humanoid")
+local TweenService      = game:GetService("TweenService")
+
+local function ApplyDodgeEffect(duration)
+	local DodgeHighlight = Character:FindFirstChild("DodgeHighlight")
+	if DodgeHighlight then
+		DodgeHighlight:Destroy()
+	end
+	local Highlight = Instance.new("Highlight")
+	Highlight.Name = "DodgeHighlight"
+	Highlight.Parent = Character
+	Highlight.FillTransparency = 1
+	Highlight.OutlineTransparency = 0
+	Highlight.OutlineColor = Color3.new(1, 1, 1)
+	local tween = TweenService:Create(Highlight, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		OutlineTransparency = 1,
+	})
+	tween:Play()
+	tween.Completed:Wait()
+	Highlight:Destroy()
+end
+
+local function DodgeLoop()
+	while isHolding do
+		if not Ragdolled.Value and not IsDowned.Value and not IsFinishing.Value
+			and DodgeTime.Value == 0 and DodgeCooldown.Value == 0
+			and CanDodge.Value and not isDodging
+			and Humanoid and not Humanoid.Jump then
+
+			isDodging = true
+			SetCooldown:FireServer(0.5, "Set", DodgeTime)
+			ApplyDodgeEffect(0.5)
+			task.wait(0.5)
+			isDodging = false
+			SetCooldown:FireServer(1.5 + DodgeFatigue.Value, "Set", DodgeCooldown)
+			SetCooldown:FireServer(1, "Add", DodgeFatigue)
+			CooldownUI:Fire("Dodge", DodgeCooldown, 88193227359336, "Ability")
+		end
+		task.wait(0.05)
+	end
+end
+
+DodgeButton.InputBegan:Connect(function()
+	if isHolding then return end
+	isHolding = true
+	task.spawn(DodgeLoop)
+end)
+
+DodgeButton.InputEnded:Connect(function()
+	isHolding = false
+end)
+
