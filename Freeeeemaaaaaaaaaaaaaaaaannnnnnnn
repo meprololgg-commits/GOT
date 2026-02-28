@@ -165,8 +165,8 @@ local function OnCharacterAdded(newCharacter)
 	RagdollImmunity  = WaitForChildInDescendants(Character, "RagdollImmunity",  5)
 	IsReviving       = WaitForChildInDescendants(Character, "IsReviving",       5)
 
-
-	local Client         = Character:WaitForChild("Client")
+    local PlayerScripts=Character:WaitForChild("PlayerScripts")
+	local Client         = PlayerScripts:WaitForChild("Client")
 	local BackFlipAbility = Client:WaitForChild("BackFlipAbility")
 	BackFlipAnim  = Humanoid:LoadAnimation(BackFlipAbility:WaitForChild("BackFlipAnim"))
 	BackFlipSound = BackFlipAbility:FindFirstChild("BackFlipSound")
